@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: linkserve-poster-management
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_NAME
+        value: LINKSERVE POSTER MANAGEMENT SYSTEM
+      - key: APP_TIMEZONE
+        value: America/Los_Angeles

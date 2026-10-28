@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" role="img" aria-labelledby="title">
+  <title id="title">LinkServe globe and L logo</title>
+  <rect width="200" height="220" fill="#fff"/>
+  <g fill="none" stroke="#087b4a" stroke-width="2.1" stroke-linecap="round">
+    <circle cx="101" cy="96" r="83"/>
+    <ellipse cx="101" cy="96" rx="38" ry="82"/>
+    <path d="M101 14c-31 30-49 57-51 83 1 29 20 57 52 82M101 14c30 30 49 57 51 83-2 29-21 57-52 82"/>
+    <path d="M22 74c46 15 111 15 158 0M24 119c48-13 107-13 154 0M42 48c36 12 82 12 119 0M42 146c37-12 82-12 119 0"/>
+    <path d="M37 35c28 16 53 41 73 67 16 21 32 44 53 56M165 35c-27 17-51 41-72 68-16 21-31 42-51 57"/>
+  </g>
+  <path fill="#ed1c2e" d="M52 18 82 11v76l78-35 6 8-84 48-30 17z"/>
+  <path fill="#1769a5" d="m61 184 58-72H75l101-10-12 11z"/>
+</svg>
