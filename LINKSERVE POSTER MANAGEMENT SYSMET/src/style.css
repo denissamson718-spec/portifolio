@@ -232,3 +232,13 @@ body{font-size:14px}
 /* Keep poster descriptions readable in the template cards. */
 .poster-info p{color:#343a50;font-size:13px;line-height:1.55;height:auto;min-height:0;overflow-wrap:anywhere}
 @media(max-width:640px){.poster-info p{font-size:12px}}
+
+.heading-copy{min-width:0}.heading-side{display:flex;flex-direction:column;align-items:flex-end;gap:13px}.date-time{display:flex;flex-direction:column;align-items:flex-end;gap:3px;color:#777b8d;font-size:11px}.date-time strong{font:700 18px 'Plus Jakarta Sans',sans-serif;letter-spacing:.02em;color:#292d48;font-variant-numeric:tabular-nums}@media(max-width:640px){.heading-side{align-items:stretch;gap:10px}.date-time{align-items:flex-end}}
+
+.dashboard-brand{display:flex;align-items:baseline;gap:10px;margin:-15px 0 14px;color:#292d48;font-size:inherit;letter-spacing:normal}.dashboard-brand-name{display:inline-flex;font:800 17px 'Plus Jakarta Sans',sans-serif;letter-spacing:.045em}.dashboard-brand-name span{color:#e66b72}.dashboard-brand-name b{color:#4b8e78}.dashboard-brand-subtitle{font:700 9px 'DM Sans',sans-serif;letter-spacing:.16em;color:#8589a0}@media(max-width:640px){.dashboard-brand{align-items:flex-start;flex-direction:column;gap:2px;margin:-10px 0 12px}.dashboard-brand-name{font-size:16px}.dashboard-brand-subtitle{font-size:8px}}
+
+.dashboard-brand{display:flex;align-items:center;gap:11px;margin:-15px 0 14px;color:#667366;font-size:inherit;letter-spacing:normal;white-space:normal}.dashboard-brand strong{font:800 15px 'Plus Jakarta Sans',sans-serif;letter-spacing:.08em;color:#315c49}.dashboard-brand span{border-left:1px solid #d7ddd6;padding-left:11px;font:600 9px 'DM Sans',sans-serif;letter-spacing:.14em;color:#858b84}@media(max-width:640px){.dashboard-brand{align-items:center;flex-direction:row;gap:8px;margin:-10px 0 12px}.dashboard-brand strong{font-size:14px}.dashboard-brand span{font-size:8px;padding-left:8px}}
+
+.dashboard-brand strong,.dashboard-brand span{color:#3478b8}
+
+.content-wrap{padding-top:27px}@media(max-width:640px){.content-wrap{padding-top:20px}}
