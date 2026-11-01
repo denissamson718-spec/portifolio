@@ -242,3 +242,6 @@ body{font-size:14px}
 .dashboard-brand strong,.dashboard-brand span{color:#3478b8}
 
 .content-wrap{padding-top:27px}@media(max-width:640px){.content-wrap{padding-top:20px}}
+
+@media(max-width:640px){.heading-side{width:100%;align-items:stretch;gap:12px}.date-time{width:100%;flex-direction:row;align-items:center;justify-content:center;gap:10px;padding:10px 12px;border:1px solid #e8e9f0;border-radius:12px;background:#fff;font-size:12px;line-height:1.25}.date-time span{text-align:right}.date-time strong{font-size:17px;white-space:nowrap}.heading-actions{gap:8px}.heading-actions button{min-width:0}.page-heading{gap:12px}}
+@media(max-width:380px){.date-time{gap:7px;padding:9px 8px;font-size:11px}.date-time strong{font-size:16px}.heading-actions button{font-size:9px;padding:9px 6px}}
