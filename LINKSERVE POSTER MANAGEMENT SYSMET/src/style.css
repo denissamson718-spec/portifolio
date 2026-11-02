@@ -245,6 +245,9 @@ body{font-size:14px}
 
 /* Calendar accent for the Scheduled posts stat tile */
 .stat-icon.lavender{color:#5369b5;background:#edf0ff}
+.poster-schedule{min-height:32px;padding:7px 14px;border:1px solid #ed6b52;border-radius:999px;background:#ed6b52;color:#fff;font-size:11px;font-weight:700;gap:6px}
+.poster-schedule svg{color:currentColor}
+.poster-schedule:hover{background:#df5e46;border-color:#df5e46;color:#fff}
 
 @media(max-width:640px){.heading-side{width:100%;align-items:stretch;gap:12px}.date-time{width:100%;flex-direction:row;align-items:center;justify-content:center;gap:10px;padding:10px 12px;border:1px solid #e8e9f0;border-radius:12px;background:#fff;font-size:12px;line-height:1.25}.date-time span{text-align:right}.date-time strong{font-size:17px;white-space:nowrap}.heading-actions{gap:8px}.heading-actions button{min-width:0}.page-heading{gap:12px}}
 @media(max-width:380px){.date-time{gap:7px;padding:9px 8px;font-size:11px}.date-time strong{font-size:16px}.heading-actions button{font-size:9px;padding:9px 6px}}
