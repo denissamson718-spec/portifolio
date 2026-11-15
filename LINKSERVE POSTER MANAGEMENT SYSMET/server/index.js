@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cron from 'node-cron';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -71,13 +71,25 @@ function serveableDriveImage(url, driveFileId) {
   const id = driveFileId || String(url || '').match(/[?&]id=([^&]+)/)?.[1];
   return id ? `/api/drive/image/${encodeURIComponent(id)}` : url;
 }
-app.get('/api/posters', route(async (req,res) => res.json((await all('posters')).map(p=>({...p,image_url:serveableDriveImage(p.image_url,p.drive_file_id)})))));
-app.post('/api/posters', route(async (req,res) => { const title=String(req.body.title||'').trim()||'Untitled poster'; const description=String(req.body.description||'').trim(); const image_url=String(req.body.image_url||'').trim()||'/poster-placeholder.svg'; const tags=Array.isArray(req.body.tags)?req.body.tags:[]; res.status(201).json(await insert('posters',{title,description,image_url,tags,status:'ready'})); }));
-app.delete('/api/posters/:id', route(async (req,res) => { await del('posters',req.params.id); res.json({ok:true}); }));
+async function signedPoster(p) { if (!p.storage_path || !supabase) return p; const {data,error}=await supabase.storage.from('linkserve-posters').createSignedUrl(p.storage_path,3600); if(error) throw error; return {...p,image_url:data.signedUrl}; }
+app.get('/api/posters', route(async (req,res) => res.json(await Promise.all((await all('posters')).map(signedPoster)))));
+app.post('/api/posters/upload', express.raw({type:'image/*',limit:'20mb'}), route(async (req,res) => {
+  if (!supabase) return res.status(503).json({error:'Configure Supabase before uploading posters.'});
+  const bytes=req.body, mime=req.headers['content-type']; if(!Buffer.isBuffer(bytes)||!String(mime).startsWith('image/')) return res.status(400).json({error:'Upload a valid image.'});
+  const hash=createHash('sha256').update(bytes).digest('hex');
+  const {data:duplicate,error:lookupError}=await supabase.from('posters').select('id,title').eq('image_hash',hash).maybeSingle(); if(lookupError) throw lookupError; if(duplicate) return res.status(409).json({error:`This image already exists as “${duplicate.title}”.`});
+  const id=randomBytes(16).toString('hex'), path=`${id}.${String(mime).split('/')[1].replace(/[^a-z0-9.+-]/gi,'')||'img'}`;
+  const {error:uploadError}=await supabase.storage.from('linkserve-posters').upload(path,bytes,{contentType:mime,upsert:false}); if(uploadError) throw uploadError;
+  const title=String(req.headers['x-poster-title']||'Untitled poster').trim().slice(0,200), description=String(req.headers['x-poster-description']||'').slice(0,2000), tags=String(req.headers['x-poster-tags']||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,30);
+  const {data,error}=await supabase.from('posters').insert({title,description,image_url:path,storage_path:path,image_hash:hash,tags,status:'available'}).select().single(); if(error){await supabase.storage.from('linkserve-posters').remove([path]); if(error.code==='23505')return res.status(409).json({error:'This image is already in your poster library.'}); throw error;} res.status(201).json(await signedPoster(data));
+}));
+app.delete('/api/posters/:id', route(async (req,res) => { const {data:p,error}=await supabase.from('posters').select('storage_path').eq('id',req.params.id).single(); if(error)throw error; await del('posters',req.params.id); if(p.storage_path)await supabase.storage.from('linkserve-posters').remove([p.storage_path]); res.json({ok:true}); }));
 app.get('/api/schedules', route(async (req,res) => res.json((await all('scheduled_posts')).map(p=>({...p,image_url:serveableDriveImage(p.image_url)})))));
-app.post('/api/schedules', route(async (req,res) => { const {poster_id,poster_title,image_url,channel='Manual sharing',caption='',scheduled_at} = req.body; if (!poster_title || !image_url || !scheduled_at) return res.status(400).json({error:'Choose a poster and schedule time'}); res.status(201).json(await insert('scheduled_posts',{poster_id,poster_title,image_url,channel,caption,scheduled_at,status:'scheduled'})); }));
+app.post('/api/schedules', route(async (req,res) => { const {poster_id,scheduled_at,channel='Viber Community'}=req.body; if (!poster_id || !scheduled_at || new Date(scheduled_at)<=new Date()) return res.status(400).json({error:'Choose a poster and future schedule time'}); const {data:p,error}=await supabase.from('posters').select('*').eq('id',poster_id).single(); if(error)throw error; if(p.status==='published')return res.status(409).json({error:'This poster is already published. Share it again from its card instead.'}); const {data:existing}=await supabase.from('scheduled_posts').select('id').eq('poster_id',poster_id).in('status',['scheduled','ready_to_share']).limit(1); if(existing?.length)return res.status(409).json({error:'This poster already has an active schedule.'}); res.status(201).json(await insert('scheduled_posts',{poster_id,poster_title:p.title,image_url:p.storage_path,channel,caption:'',scheduled_at,status:'scheduled'})); }));
+app.patch('/api/schedules/:id', route(async (req,res) => { const {scheduled_at}=req.body; if(!scheduled_at||new Date(scheduled_at)<=new Date())return res.status(400).json({error:'Choose a future schedule time'}); const row=await update('scheduled_posts',req.params.id,{scheduled_at,status:'scheduled'}); res.json(row); }));
 app.delete('/api/schedules/:id', route(async (req,res) => { const row=await update('scheduled_posts',req.params.id,{status:'cancelled'}); res.json(row || {ok:true}); }));
 app.get('/api/history', route(async (req,res) => res.json(await all('posting_history'))));
+app.post('/api/publications', route(async (req,res) => { const {poster_id}=req.body; const {data:p,error}=await supabase.from('posters').select('*').eq('id',poster_id).single(); if(error)throw error; const {data:previous}=await supabase.from('posting_history').select('id').eq('poster_id',poster_id).eq('result','published').limit(1); const item=await insert('posting_history',{poster_id,poster_title:p.title,channel:'Viber Community',publication_type:previous?.length?'Republished':'First publication',result:'published',detail:'Confirmed as shared by administrator.'}); await update('posters',poster_id,{status:'published'}); res.status(201).json(item); }));
 app.get('/api/drive/connect', route(async (req,res) => {
   if (!driveOAuthConfigured()) return res.status(503).send('Google Drive OAuth is not configured. Add the OAuth client ID and secret to .env.');
   const { google } = await import('googleapis');
@@ -160,7 +172,7 @@ app.post('/api/viber/send', route(async (req,res) => {
   res.json({outcomes});
 }));
 // Due items are surfaced in the dashboard for manual sharing. No unapproved group automation is attempted.
-cron.schedule('* * * * *', async () => { try { const due=(await all('scheduled_posts')).filter(x=>x.status==='scheduled' && new Date(x.scheduled_at)<=new Date()); for(const item of due){ await update('scheduled_posts',item.id,{status:'ready_to_share'}); await insert('posting_history',{poster_title:item.poster_title,channel:item.channel,result:'ready to share',detail:'Scheduled item is ready for assisted sharing.'}); } } catch(e){console.error('Scheduler:',e.message);} }, {timezone:process.env.APP_TIMEZONE||'UTC'});
+// Scheduled posts remain scheduled; the app surfaces due reminders without claiming publication.
 // Serve the Vite build from the same Render web service as the API.
 const distPath = resolve('dist');
 app.use(express.static(distPath));
