@@ -52,7 +52,12 @@ app.use('/api', async (req,res,next) => {
   next();
 });
 async function signedPoster(p) { if (!p.storage_path || !supabase) return p; const {data,error}=await supabase.storage.from('linkserve-posters').createSignedUrl(p.storage_path,3600); if(error) throw error; return {...p,image_url:data.signedUrl}; }
-async function backfillStoredImageHashes() {
+let imageHashesBackfilled=false;
+let imageHashBackfillInFlight=null;
+async function ensureStoredImageHashes() {
+  if(imageHashesBackfilled)return;
+  if(imageHashBackfillInFlight)return imageHashBackfillInFlight;
+  imageHashBackfillInFlight=(async()=>{
   const {data:rows,error}=await supabase.from('posters').select('id,title,storage_path').is('image_hash',null).not('storage_path','is',null).limit(1000);
   if(error)throw error;
   for(const row of rows||[]){
@@ -63,6 +68,9 @@ async function backfillStoredImageHashes() {
     if(updateError?.code==='23505')console.warn(`Existing duplicate image found while hashing poster ${row.id}.`);
     else if(updateError)throw updateError;
   }
+  imageHashesBackfilled=true;
+  })().finally(()=>{imageHashBackfillInFlight=null;});
+  return imageHashBackfillInFlight;
 }
 app.get('/api/posters', route(async (req,res) => res.json(await Promise.all((await all('posters')).map(signedPoster)))));
 app.post('/api/posters/upload', express.raw({type:'image/*',limit:'20mb'}), route(async (req,res) => {
@@ -77,7 +85,7 @@ app.post('/api/posters/upload', express.raw({type:'image/*',limit:'20mb'}), rout
   };
   if(!Buffer.isBuffer(bytes)||bytes.length===0||bytes.length>20*1024*1024||!signatures[mime]?.(bytes)) return res.status(400).json({error:'Upload a valid JPEG, PNG, WebP, GIF, or AVIF image up to 20 MB.'});
   const hash=createHash('sha256').update(bytes).digest('hex');
-  await backfillStoredImageHashes();
+  await ensureStoredImageHashes();
   const {data:duplicate,error:lookupError}=await supabase.from('posters').select('id,title').eq('image_hash',hash).maybeSingle(); if(lookupError) throw lookupError; if(duplicate) return res.status(409).json({error:`This image already exists as “${duplicate.title}”.`});
   const ext={ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','image/avif':'avif' }[mime];
   const path=`${randomBytes(16).toString('hex')}.${ext}`;
